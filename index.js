@@ -4,9 +4,13 @@ import cors from "cors";
 import User from "./Schema.js";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
+import fetch from "node-fetch";
 dotenv.config();
 
 let URL = process.env.DB;
+
+app.use(express.json({ limit: "10kb" }));
+app.use(express.urlencoded({ extended: true }));
 
 main().catch((err) => console.log(err));
 
@@ -80,7 +84,7 @@ app.post("/login", async (req, res) => {
     }
 
     if (user.password !== password) {
-      return res.status(401).json({ error: "Invalid password" });
+      return res.status(401).json({ error: "Invalid credentials" });
     }
 
     return res.status(200).json({
