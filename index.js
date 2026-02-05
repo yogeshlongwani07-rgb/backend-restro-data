@@ -7,6 +7,7 @@ dotenv.config();
 
 const app = express();
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 let URL = process.env.DB;
 
@@ -28,19 +29,21 @@ app.get("/", (req, res) => {
   res.json({ message: "Ok" });
 });
 
-app.get("/signup", () => {
+app.get("/signup", (req, res) => {
   res.json({ message: "Working" });
 });
 
 app.post("/signup", async (req, res) => {
+  console.log(req.body);
   try {
     const { name, email, password } = req.body;
+    console.log(name, email, password);
 
-    if (!name || !email || !password) {
-      return res.status(400).json({
-        error: "name, email, and password are required",
-      });
-    }
+    // if (!name || !email || !password) {
+    //   return res.status(400).json({
+    //     error: "name, email, and password are required",
+    //   });
+    // }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
