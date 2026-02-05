@@ -1,16 +1,14 @@
 import express from "express";
 import cors from "cors";
-
-import User from "./Schema.js";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
 dotenv.config();
 
+const app = express();
+app.use(express.json());
+app.use(cors());
 let URL = process.env.DB;
-
-app.use(express.json({ limit: "10kb" }));
-app.use(express.urlencoded({ extended: true }));
 
 main().catch((err) => console.log(err));
 
@@ -18,13 +16,20 @@ async function main() {
   await mongoose.connect(URL);
 }
 
-const app = express();
-app.use(express.json());
+const userSchema = new mongoose.Schema({
+  name: String,
+  email: String,
+  password: String,
+});
 
-app.use(cors());
+const User = mongoose.model("User", userSchema);
 
 app.get("/", (req, res) => {
   res.json({ message: "Ok" });
+});
+
+app.get("/signup", () => {
+  res.json({ message: "Working" });
 });
 
 app.post("/signup", async (req, res) => {
