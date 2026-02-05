@@ -39,11 +39,11 @@ app.post("/signup", async (req, res) => {
     const { name, email, password } = req.body;
     console.log(name, email, password);
 
-    // if (!name || !email || !password) {
-    //   return res.status(400).json({
-    //     error: "name, email, and password are required",
-    //   });
-    // }
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        error: "name, email, and password are required",
+      });
+    }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -141,5 +141,4 @@ app.get("/api/restro", async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log("Backend listening on", PORT));
+export default app;
