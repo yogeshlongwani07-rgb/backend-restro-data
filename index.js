@@ -1,0 +1,133 @@
+import express from "express";
+import cors from "cors";
+
+import User from "./Schema.js";
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+dotenv.config();
+
+let URL = process.env.DB;
+
+main().catch((err) => console.log(err));
+
+async function main() {
+  await mongoose.connect(URL);
+}
+
+const app = express();
+app.use(express.json());
+
+app.use(cors());
+
+app.get("/", (req, res) => {
+  res.json({ message: "Ok" });
+});
+
+app.post("/signup", async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        error: "name, email, and password are required",
+      });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: "Invalid email format" });
+    }
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(409).json({ error: "Email already exists" });
+    }
+
+    if (password.length < 2) {
+      return res.status(400).json({
+        error: "Password must be at least 2 characters",
+      });
+    }
+
+    await User.create({
+      name,
+      email,
+      password,
+    });
+
+    return res.status(201).json({ message: "OK" });
+  } catch (err) {
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        error: "email and password are required",
+      });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(401).json({
+        error: "Invalid email or password",
+      });
+    }
+
+    if (user.password !== password) {
+      return res.status(401).json({ error: "Invalid password" });
+    }
+
+    return res.status(200).json({
+      message: "Login successful",
+      userId: user._id,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      error: "Server error",
+    });
+  }
+});
+
+app.get("/api/restro", async (req, res) => {
+  const { lat, lng } = req.query;
+
+  if (!lat || !lng) {
+    return res.status(400).json({ error: "lat and lng required" });
+  }
+
+  try {
+    const response = await fetch(
+      `https://www.swiggy.com/dapi/restaurants/list/v5?lat=${lat}&lng=${lng}`,
+      {
+        headers: {
+          "User-Agent": "Mozilla/5.0",
+          Accept: "application/json",
+          Referer: "https://www.swiggy.com",
+          Origin: "https://www.swiggy.com",
+        },
+      },
+    );
+
+    console.log("Swiggy status:", response.status);
+
+    if (!response.ok) {
+      return res.status(response.status).json({ error: "Blocked by Swiggy" });
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log("Backend listening on", PORT));
