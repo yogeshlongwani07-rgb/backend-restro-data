@@ -16,6 +16,8 @@ app.use(
   }),
 );
 
+app.options("*", cors());
+
 let URL = process.env.DB;
 
 main().catch((err) => console.log(err));
