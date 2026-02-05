@@ -8,7 +8,14 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
+
 let URL = process.env.DB;
 
 main().catch((err) => console.log(err));
@@ -34,7 +41,10 @@ app.get("/signup", (req, res) => {
 });
 
 app.post("/signup", async (req, res) => {
-  console.log(req.body);
+  if (!req.body) {
+    return res.status(400).json({ error: "No body received" });
+  }
+
   try {
     const { name, email, password } = req.body;
     console.log(name, email, password);
@@ -141,4 +151,5 @@ app.get("/api/restro", async (req, res) => {
   }
 });
 
-export default app;
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log("Backend listening on", PORT));
