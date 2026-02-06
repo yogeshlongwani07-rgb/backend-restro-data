@@ -20,7 +20,9 @@ app.options("*", cors());
 
 let URL = process.env.DB;
 
-main().catch((err) => console.log(err));
+main()
+  .then(() => console.log("Mongo connected"))
+  .catch((err) => console.log(err));
 
 async function main() {
   await mongoose.connect(URL);
@@ -53,23 +55,35 @@ app.post("/signup", async (req, res) => {
 
     if (!name || !email || !password) {
       return res.status(400).json({
-        error: "name, email, and password are required",
+        errors: {
+          error: "Required fields missing",
+        },
       });
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return res.status(400).json({ error: "Invalid email format" });
+      return res.status(400).json({
+        errors: {
+          error: "Invalid Email Format",
+        },
+      });
     }
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(409).json({ error: "Email already exists" });
+      return res.status(400).json({
+        errors: {
+          error: "Email already exist",
+        },
+      });
     }
 
     if (password.length < 2) {
       return res.status(400).json({
-        error: "Password must be at least 2 characters",
+        errors: {
+          error: "Password must be atleast 2 characters",
+        },
       });
     }
 
@@ -91,7 +105,9 @@ app.post("/login", async (req, res) => {
 
     if (!email || !password) {
       return res.status(400).json({
-        error: "email and password are required",
+        errors: {
+          error: "Required fields missing",
+        },
       });
     }
 
