@@ -19,7 +19,6 @@ app.use(
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-// app.options("*", cors());
 
 let URL = process.env.DB;
 
@@ -52,7 +51,7 @@ app.use(
     cookie: {
       httpOnly: true,
       secure: true,
-      sameSite: "lax",
+      sameSite: "none",
       maxAge: 1000 * 60 * 60 * 24,
     },
   }),
@@ -183,7 +182,11 @@ app.post("/login", async (req, res) => {
 
 app.post("/logout", (req, res) => {
   req.session.destroy(() => {
-    res.clearCookie("SessionCookie");
+    res.clearCookie("SessionCookie", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+    });
     res.json({ message: "Logged out" });
   });
 });
