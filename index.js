@@ -1,22 +1,25 @@
+import bcrypt from "bcrypt";
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
+import session from "express-session";
+import MongoStore from "connect-mongo";
 dotenv.config();
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.set("trust proxy", 1);
 app.use(
   cors({
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    origin: ["http://localhost:5173", "https://restro-data-xkg3.vercel.app"],
+    credentials: true,
   }),
 );
 
-app.options("*", cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+// app.options("*", cors());
 
 let URL = process.env.DB;
 
@@ -36,12 +39,42 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model("User", userSchema);
 
+app.use(
+  session({
+    name: "SessionCookie",
+    secret: "project_session_secret_2026_random_string",
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+      mongoUrl: process.env.DB,
+      collectionName: "sessions",
+    }),
+    cookie: {
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      maxAge: 1000 * 60 * 60 * 24,
+    },
+  }),
+);
+
 app.get("/", (req, res) => {
   res.json({ message: "Ok" });
 });
 
-app.get("/signup", (req, res) => {
+app.get("/test", (req, res) => {
   res.json({ message: "Working" });
+});
+
+app.get("/session", (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ loggedIn: false });
+  }
+
+  res.json({
+    loggedIn: true,
+    user: req.session.user,
+  });
 });
 
 app.post("/signup", async (req, res) => {
@@ -51,7 +84,6 @@ app.post("/signup", async (req, res) => {
 
   try {
     const { name, email, password } = req.body;
-    console.log(name, email, password);
 
     if (!name || !email || !password) {
       return res.status(400).json({
@@ -79,19 +111,26 @@ app.post("/signup", async (req, res) => {
       });
     }
 
-    if (password.length < 2) {
+    if (password.length < 4) {
       return res.status(400).json({
         errors: {
-          error: "Password must be atleast 2 characters",
+          error: "Password must be atleast 4 characters",
         },
       });
     }
 
-    await User.create({
+    const hashPassword = await bcrypt.hash(password, 10);
+
+    const newUser = await User.create({
       name,
       email,
-      password,
+      password: hashPassword,
     });
+
+    req.session.user = {
+      id: newUser._id,
+      name: newUser.name,
+    };
 
     return res.status(201).json({ message: "OK" });
   } catch (err) {
@@ -119,9 +158,15 @@ app.post("/login", async (req, res) => {
       });
     }
 
-    if (user.password !== password) {
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
+
+    req.session.user = {
+      id: user._id,
+      name: user.name,
+    };
 
     return res.status(200).json({
       message: "Login successful",
@@ -134,6 +179,13 @@ app.post("/login", async (req, res) => {
       error: "Server error",
     });
   }
+});
+
+app.post("/logout", (req, res) => {
+  req.session.destroy(() => {
+    res.clearCookie("SessionCookie");
+    res.json({ message: "Logged out" });
+  });
 });
 
 app.get("/api/restro", async (req, res) => {
