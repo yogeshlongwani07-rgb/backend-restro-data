@@ -6,7 +6,10 @@ import dotenv from "dotenv";
 import fetch from "node-fetch";
 import session from "express-session";
 import MongoStore from "connect-mongo";
+import jwt from "jsonwebtoken";
 dotenv.config();
+
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const app = express();
 app.set("trust proxy", 1);
@@ -131,7 +134,11 @@ app.post("/signup", async (req, res) => {
       name: newUser.name,
     };
 
-    return res.status(201).json({ message: "OK" });
+    const jwt = jwt.sign({ id: newUser._id, name: newUser.name }, JWT_SECRET, {
+      expiresIn: "1d",
+    });
+
+    return res.status(201).json({ message: "OK", jwt });
   } catch (err) {
     return res.status(500).json({ message: "Server error" });
   }
@@ -167,10 +174,15 @@ app.post("/login", async (req, res) => {
       name: user.name,
     };
 
+    const token = jwt.sign({ id: user._id, name: user.name }, JWT_SECRET, {
+      expiresIn: "1d",
+    });
+
     return res.status(200).json({
       message: "Login successful",
       userId: user._id,
       userName: user.name,
+      token,
     });
   } catch (err) {
     console.error(err);
