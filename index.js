@@ -60,21 +60,6 @@ app.use(
   }),
 );
 
-const jwtAuth = (req, res, next) => {
-  const authHeader = req.headers.auth;
-  if (!authHeader) {
-    return res.status(401).json({ error: "No token" });
-  }
-  const token = authHeader.split(" ")[1];
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.jwtUser = decoded;
-    next();
-  } catch {
-    return res.status(401).json({ error: "invalid token" });
-  }
-};
-
 app.get("/", (req, res) => {
   res.json({ message: "Ok" });
 });
@@ -163,7 +148,7 @@ app.post("/signup", async (req, res) => {
   }
 });
 
-app.post("/login", jwtAuth, async (req, res) => {
+app.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
